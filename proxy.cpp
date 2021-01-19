@@ -19,7 +19,7 @@
 
 using namespace std;
 
-#define MAX_BUFFER_SIZE 5000
+#define MAX_BUFFER_SIZE 20000
 
 void writeToserverSocket(const char *buff_to_server, int sockfd, int buff_length)
 {
@@ -27,7 +27,6 @@ void writeToserverSocket(const char *buff_to_server, int sockfd, int buff_length
 	int senteach;
 	while (totalsent < buff_length)
 	{
-		cout << "SEND: " << buff_to_server << endl;
 		if ((senteach = send(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent, 0)) < 0)
 		{
 			cout << " Error in sending to server !" << endl;
@@ -43,27 +42,31 @@ void writeToclientSocket(const char *buff_to_server, int sockfd, int buff_length
 	int senteach;
 	while (totalsent < buff_length)
 	{
-		if ((senteach = send(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent, 0)) < 0)
+		cout << "[I] Write to client socket" << endl;
+		if ((senteach = write(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent)) < 0)
 		{
-			cout << " Error in sending to server !" << endl;
+			cout << "[E] Cannot send to server" << endl;
 			return;
 		}
+		else
+			break;
+
+		cout << senteach << endl;
 		totalsent += senteach;
 	}
+	cout << "break loop" << endl;
 }
 
-void writeToClient(int Clientfd, int Serverfd)
+void writeToClient(int clientFd, int serverFd)
 {
 	int iRecv;
 	char buf[MAX_BUFFER_SIZE];
-
-	while ((iRecv = recv(Serverfd, buf, MAX_BUFFER_SIZE, 0)) > 0)
+	while ((iRecv = recv(serverFd, buf, MAX_BUFFER_SIZE, 0)) > 0)
 	{
-		cout << "Buff from server: " << buf << endl;
-		int len = strlen(buf);
-		writeToclientSocket(buf, Clientfd, len); // writing to client
-		memset(buf, 0, sizeof(buf));
+		writeToclientSocket(buf, clientFd, iRecv + 1); // writing to client
+		memset(buf, 0, iRecv + 1);
 	}
+	cout << "write to client done" << endl;
 }
 
 constexpr int max_events = 32;
@@ -192,7 +195,6 @@ auto read_data(int fd)
 	}
 
 	// processData(fd, buf);
-	cout << fd << " says: " << buf;
 	RequestParser *rp = new RequestParser();
 	int parseRes = rp->parseRequest(buf);
 	if (parseRes >= 0)
@@ -200,12 +202,12 @@ auto read_data(int fd)
 		int serverFd = rp->createServerConnection();
 		if (serverFd >= 0)
 		{
-			cout << "Server FD: " << serverFd << endl;
-			int req_len = strlen(buf);
-			writeToserverSocket(buf, serverFd, req_len);
-			cout << "Write to server socket" << endl;
+
+			// int count = strlen(buf);
+			writeToserverSocket(buf, serverFd, count);
+			cout << "[I] Write to client socket" << endl;
 			writeToClient(fd, serverFd);
-			cout << "Write to client" << endl;
+			cout << "[I] Write to client socket completed, exit." << endl;
 			close(serverFd);
 		}
 	}
@@ -255,7 +257,7 @@ int main()
 
 	while (1)
 	{
-		auto n = epoll_wait(epollfd, events.data(), max_events, -1);
+		auto n = epoll_wait(epollfd, events.data(), max_events, 1);
 		for (int i = 0; i < n; ++i)
 		{
 			if (events[i].events & EPOLLERR ||
@@ -267,6 +269,7 @@ int main()
 			}
 			else if (socketfd == events[i].data.fd) // new connection
 			{
+				cout << "New Connection" << endl;
 				while (accept_connection(socketfd, event, epollfd))
 				{
 				}
