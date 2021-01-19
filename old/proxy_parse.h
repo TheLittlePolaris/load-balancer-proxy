@@ -79,6 +79,8 @@ struct ParsedRequest *ParsedRequest_create();
 int ParsedRequest_parse(struct ParsedRequest *parse, const char *buf,
                         int buflen);
 
+// int testRequest(const char *request);
+
 void printReq(struct ParsedRequest *pr);
 
 bool isFilteredDomain(char *domain, char *filterDomain);
