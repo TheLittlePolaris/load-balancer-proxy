@@ -162,8 +162,6 @@ void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_
     int parseRes = this->parseRequest(buffer);
     if (parseRes >= 0)
     {
-        this->host = this->serverids[0];
-        this->port = "8080";
         int serverFd = this->createServerConnection();
         if (serverFd >= 0)
         {
