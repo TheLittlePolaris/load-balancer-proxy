@@ -42,7 +42,6 @@ void writeToclientSocket(const char *buff_to_server, int sockfd, int buff_length
 	int senteach;
 	while (totalsent < buff_length)
 	{
-		cout << "[I] Write to client socket" << endl;
 		if ((senteach = write(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent)) < 0)
 		{
 			cout << "[E] Cannot send to server" << endl;
@@ -58,6 +57,7 @@ void writeToClient(int clientFd, int serverFd)
 	char buf[MAX_BUFFER_SIZE];
 	while ((iRecv = recv(serverFd, buf, MAX_BUFFER_SIZE, 0)) > 0)
 	{
+		cout << "[I] Buffer from server:" << buf << endl;
 		writeToclientSocket(buf, clientFd, iRecv + 1); // writing to client
 		memset(buf, 0, iRecv + 1);
 	}
@@ -198,21 +198,18 @@ auto read_data(int fd)
 	if (pid == 0)
 	{
 		RequestParser *rp = new RequestParser();
-		int parseRes = rp->parseRequest(buf);
-		if (parseRes >= 0)
-		{
-			int serverFd = rp->createServerConnection();
-			if (serverFd >= 0)
-			{
-
-				// int count = strlen(buf);
-				writeToserverSocket(buf, serverFd, count);
-				cout << "[I] Write to client socket" << endl;
-				writeToClient(fd, serverFd);
-				cout << "[I] Write to client socket completed, exit." << endl;
-				close(serverFd);
-			}
-		}
+		rp->processRequest(buf, fd, count);
+		// int parseRes = rp->parseRequest(buf);
+		// if (parseRes >= 0)
+		// {
+		// 	int serverFd = rp->createServerConnection();
+		// 	if (serverFd >= 0)
+		// 	{
+		// 		writeToserverSocket(buf, serverFd, count);
+		// 		writeToClient(fd, serverFd);
+		// 		close(serverFd);
+		// 	}
+		// }
 		delete rp;
 		exit(0);
 	}

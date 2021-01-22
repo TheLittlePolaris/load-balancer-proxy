@@ -22,19 +22,33 @@
 
 using namespace std;
 
+#define MAX_BUFFER_SIZE 20000
+
 class RequestParser
 {
 private:
     string host;
     string port;
     string path;
+    string serverids[3];
+    string syncTargetIP;
 
 public:
     RequestParser();
     string getHost();
     string getPort();
     string getPath();
+    string getServerIP(string serverId);
+    string getServerID(string serverIp);
+
+    void processRequest(const char *buffer, int clientfd, int buffer_len);
     int parseRequest(const char *request);
+    void writeToServerSocket(const char *buffer, int socketfd, int length);
+    void writeToClient(int clientFd, int serverFd);
+    void writeToClientSocket(const char *buff_to_server, int sockfd, int buff_length);
+
+    string getSyncTargetIP();
+
     int createServerConnection();
     ~RequestParser();
 };
