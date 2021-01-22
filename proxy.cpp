@@ -48,13 +48,8 @@ void writeToclientSocket(const char *buff_to_server, int sockfd, int buff_length
 			cout << "[E] Cannot send to server" << endl;
 			return;
 		}
-		else
-			break;
-
-		cout << senteach << endl;
 		totalsent += senteach;
 	}
-	cout << "break loop" << endl;
 }
 
 void writeToClient(int clientFd, int serverFd)
@@ -66,7 +61,6 @@ void writeToClient(int clientFd, int serverFd)
 		writeToclientSocket(buf, clientFd, iRecv + 1); // writing to client
 		memset(buf, 0, iRecv + 1);
 	}
-	cout << "write to client done" << endl;
 }
 
 constexpr int max_events = 32;
@@ -194,24 +188,34 @@ auto read_data(int fd)
 		return false;
 	}
 
-	// processData(fd, buf);
-	RequestParser *rp = new RequestParser();
-	int parseRes = rp->parseRequest(buf);
-	if (parseRes >= 0)
+	int pid = fork();
+	if (pid < 0)
 	{
-		int serverFd = rp->createServerConnection();
-		if (serverFd >= 0)
-		{
-
-			// int count = strlen(buf);
-			writeToserverSocket(buf, serverFd, count);
-			cout << "[I] Write to client socket" << endl;
-			writeToClient(fd, serverFd);
-			cout << "[I] Write to client socket completed, exit." << endl;
-			close(serverFd);
-		}
+		perror("[E] Fork failed");
+		return true;
 	}
-	delete rp;
+
+	if (pid == 0)
+	{
+		RequestParser *rp = new RequestParser();
+		int parseRes = rp->parseRequest(buf);
+		if (parseRes >= 0)
+		{
+			int serverFd = rp->createServerConnection();
+			if (serverFd >= 0)
+			{
+
+				// int count = strlen(buf);
+				writeToserverSocket(buf, serverFd, count);
+				cout << "[I] Write to client socket" << endl;
+				writeToClient(fd, serverFd);
+				cout << "[I] Write to client socket completed, exit." << endl;
+				close(serverFd);
+			}
+		}
+		delete rp;
+		exit(0);
+	}
 
 	cout << "test" << endl;
 	return true;

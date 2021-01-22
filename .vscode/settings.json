@@ -3,6 +3,7 @@
         "*.cs": "aspnetcorerazor",
         "iosfwd": "cpp",
         "sstream": "cpp",
-        "*.tcc": "cpp"
+        "*.tcc": "cpp",
+        "ostream": "cpp"
     }
 }
