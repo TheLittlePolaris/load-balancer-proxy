@@ -122,6 +122,9 @@ int RequestParser::createServerConnection()
     ahints.ai_family = AF_UNSPEC;
     ahints.ai_socktype = SOCK_STREAM;
     ahints.ai_flags = AI_PASSIVE;
+
+    cout << this->host << endl;
+
     if (getaddrinfo(this->host.c_str(), "8080", &ahints, &paRes) != 0)
     {
         cout << "[E] getaddrinfo failed!" << endl;
