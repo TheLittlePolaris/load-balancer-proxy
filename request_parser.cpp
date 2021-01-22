@@ -157,15 +157,37 @@ int RequestParser::createServerConnection()
     return iSockfd;
 }
 
+string RequestParser::modifyBuffer(const char *buffer)
+{
+    string buf = string(buffer);
+    string newHost = this->host + ":" + this->port;
+
+    int index = buf.find("http://");
+    int nextSlash = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        nextSlash = buf.find("/", nextSlash + 1);
+    }
+    buf.replace(index + 7, nextSlash - (index + 7), newHost);
+    return buf;
+}
+
 void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_len)
 {
     int parseRes = this->parseRequest(buffer);
     if (parseRes >= 0)
     {
+        // for project, remove this to be proxy server
+        this->host = this->serverids[0];
+        this->port = "8080";
+
+        string modifiedBuffer = this->modifyBuffer(buffer);
+
         int serverFd = this->createServerConnection();
         if (serverFd >= 0)
         {
-            this->writeToServerSocket(buffer, serverFd, buffer_len);
+            this->writeToServerSocket(modifiedBuffer.c_str(), serverFd, buffer_len);
+            //  this->writeToServerSocket(buffer, serverFd, buffer_len);
             this->writeToClient(clientfd, serverFd);
             close(serverFd);
         }

@@ -41,6 +41,7 @@ public:
     string getPath();
     string getServerIP(string serverId);
     string getServerID(string serverIp);
+    string getSyncTargetIP();
 
     void processRequest(const char *buffer, int clientfd, int buffer_len);
     int parseRequest(const char *request);
@@ -48,7 +49,7 @@ public:
     void writeToClient(int clientFd, int serverFd);
     void writeToClientSocket(const char *buff_to_server, int sockfd, int buff_length);
 
-    string getSyncTargetIP();
+    string modifyBuffer(const char *buffer);
 
     int createServerConnection();
     ~RequestParser();
