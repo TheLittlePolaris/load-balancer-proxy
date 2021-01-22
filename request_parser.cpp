@@ -96,9 +96,7 @@ int RequestParser::parseRequest(const char *request)
     if (port_pos != (ssize_t)string::npos)
     {
         host = url.substr(0, port_pos);
-        // url.erase(port_pos + 1);
         port = url.substr(port_pos + 1, path_pos - port_pos);
-        // url.erase()
         path = url.substr(path_pos);
     }
     else
@@ -119,7 +117,7 @@ int RequestParser::parseRequest(const char *request)
     this->port = port;
     this->path = path;
 
-    cout << "http://" << this->host << (this->port.length() > 0 ? ":" + this->port : "") << this->path << endl;
+    // cout << "http://" << this->host << (this->port.length() > 0 ? ":" + this->port : "") << this->path << endl;
     return 0;
 }
 
@@ -150,7 +148,7 @@ int RequestParser::createServerConnection()
     if (connect(iSockfd, paRes->ai_addr, paRes->ai_addrlen) < 0)
     {
         cout << "[E] Cannot connect to server:" << endl;
-        cout << "http://" << this->host << ":" << this->port << this->path << endl;
+        // cout << "http://" << this->host << ":" << this->port << this->path << endl;
         return -1;
     }
 
@@ -164,6 +162,8 @@ void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_
     int parseRes = this->parseRequest(buffer);
     if (parseRes >= 0)
     {
+        this->host = this->serverids[0];
+        this->port = "8080";
         int serverFd = this->createServerConnection();
         if (serverFd >= 0)
         {

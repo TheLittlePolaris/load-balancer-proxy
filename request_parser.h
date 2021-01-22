@@ -23,6 +23,7 @@
 using namespace std;
 
 #define MAX_BUFFER_SIZE 20000
+constexpr int max_events = 50;
 
 class RequestParser
 {

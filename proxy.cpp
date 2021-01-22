@@ -19,52 +19,6 @@
 
 using namespace std;
 
-#define MAX_BUFFER_SIZE 20000
-
-void writeToserverSocket(const char *buff_to_server, int sockfd, int buff_length)
-{
-	int totalsent = 0;
-	int senteach;
-	while (totalsent < buff_length)
-	{
-		if ((senteach = send(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent, 0)) < 0)
-		{
-			cout << " Error in sending to server !" << endl;
-			exit(1);
-		}
-		totalsent += senteach;
-	}
-}
-
-void writeToclientSocket(const char *buff_to_server, int sockfd, int buff_length)
-{
-	int totalsent = 0;
-	int senteach;
-	while (totalsent < buff_length)
-	{
-		if ((senteach = write(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent)) < 0)
-		{
-			cout << "[E] Cannot send to server" << endl;
-			return;
-		}
-		totalsent += senteach;
-	}
-}
-
-void writeToClient(int clientFd, int serverFd)
-{
-	int iRecv;
-	char buf[MAX_BUFFER_SIZE];
-	while ((iRecv = recv(serverFd, buf, MAX_BUFFER_SIZE, 0)) > 0)
-	{
-		cout << "[I] Buffer from server:" << buf << endl;
-		writeToclientSocket(buf, clientFd, iRecv + 1); // writing to client
-		memset(buf, 0, iRecv + 1);
-	}
-}
-
-constexpr int max_events = 32;
-
 auto create_and_bind(string const &port)
 {
 	struct addrinfo hints;
@@ -199,17 +153,6 @@ auto read_data(int fd)
 	{
 		RequestParser *rp = new RequestParser();
 		rp->processRequest(buf, fd, count);
-		// int parseRes = rp->parseRequest(buf);
-		// if (parseRes >= 0)
-		// {
-		// 	int serverFd = rp->createServerConnection();
-		// 	if (serverFd >= 0)
-		// 	{
-		// 		writeToserverSocket(buf, serverFd, count);
-		// 		writeToClient(fd, serverFd);
-		// 		close(serverFd);
-		// 	}
-		// }
 		delete rp;
 		exit(0);
 	}
@@ -270,7 +213,6 @@ int main()
 			}
 			else if (socketfd == events[i].data.fd) // new connection
 			{
-				cout << "New Connection" << endl;
 				while (accept_connection(socketfd, event, epollfd))
 				{
 				}
@@ -284,9 +226,6 @@ int main()
 			}
 		}
 	}
-
-	cout << "BREAK LOOP" << endl;
-
 	close(socketfd);
 	return 0;
 }
