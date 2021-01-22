@@ -22,8 +22,7 @@
 
 using namespace std;
 
-#define MAX_BUFFER_SIZE 20000
-constexpr int max_events = 50;
+#define MAX_BUFFER_SIZE 5000
 
 class RequestParser
 {
@@ -42,12 +41,15 @@ public:
     string getServerIP(string serverId);
     string getServerID(string serverIp);
     string getSyncTargetIP();
+    string getCookieHeader(const char *request);
 
     void processRequest(const char *buffer, int clientfd, int buffer_len);
     int parseRequest(const char *request);
     void writeToServerSocket(const char *buffer, int socketfd, int length);
-    void writeToClient(int clientFd, int serverFd);
-    void writeToClientSocket(const char *buff_to_server, int sockfd, int buff_length);
+    void writeToClient(int clientFd, int serverFd, string serverId);
+    void writeToClientSocket(const char *buff_to_server, int sockfd, int buff_length, string serverId);
+
+    string modifyResponse(const char *response);
 
     string modifyBuffer(const char *buffer);
 

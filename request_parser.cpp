@@ -44,8 +44,28 @@ string RequestParser::getServerIP(string serverId)
 
     return this->serverids[0];
 }
+
+string RequestParser::getCookieHeader(const char *request)
+{
+    string reqstr = string(request);
+    istringstream is = istringstream(reqstr);
+    string token;
+    while (is >> token)
+    {
+        if (token == "Cookie:")
+        {
+            is >> token;
+            return token;
+        }
+    }
+    return "";
+}
+
 string RequestParser::getServerID(string serverIp)
 {
+
+    // int rndServer = rand() % 3;
+    // this->host = this->serverids[rndServer]; // this->serverids[0];
     if (serverIp == this->serverids[0])
     {
         return "A";
@@ -83,41 +103,10 @@ int RequestParser::parseRequest(const char *request)
     }
     if (url.compare(0, 7, "http://") == 0)
     {
-        url.erase(0, 7);
-    }
-    else
-    {
-        cout << "[E] Url protocol invalid" << endl;
         return -1;
     }
-    ssize_t port_pos = url.find(":");
-    ssize_t path_pos = url.find("/");
-    string host, port, path;
-    if (port_pos != (ssize_t)string::npos)
-    {
-        host = url.substr(0, port_pos);
-        port = url.substr(port_pos + 1, path_pos - port_pos);
-        path = url.substr(path_pos);
-    }
-    else
-    {
-        port = "80";
-        if (path_pos != (ssize_t)string::npos)
-        {
-            host = url.substr(0, path_pos);
-            path = url.substr(path_pos);
-        }
-        else
-        {
-            host = url.substr(0);
-            path = "/";
-        }
-    }
-    this->host = host;
-    this->port = port;
     this->path = path;
 
-    // cout << "http://" << this->host << (this->port.length() > 0 ? ":" + this->port : "") << this->path << endl;
     return 0;
 }
 
@@ -133,7 +122,7 @@ int RequestParser::createServerConnection()
     ahints.ai_family = AF_UNSPEC;
     ahints.ai_socktype = SOCK_STREAM;
     ahints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo(this->host.c_str(), this->port.c_str(), &ahints, &paRes) != 0)
+    if (getaddrinfo(this->host.c_str(), "8080", &ahints, &paRes) != 0)
     {
         cout << "[E] getaddrinfo failed!" << endl;
         return -1;
@@ -148,11 +137,8 @@ int RequestParser::createServerConnection()
     if (connect(iSockfd, paRes->ai_addr, paRes->ai_addrlen) < 0)
     {
         cout << "[E] Cannot connect to server:" << endl;
-        // cout << "http://" << this->host << ":" << this->port << this->path << endl;
         return -1;
     }
-
-    /* Free paRes, which was dynamically allocated by getaddrinfo */
     freeaddrinfo(paRes);
     return iSockfd;
 }
@@ -177,18 +163,31 @@ void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_
     int parseRes = this->parseRequest(buffer);
     if (parseRes >= 0)
     {
-        // for project, remove this to be proxy server
-        this->host = this->serverids[0];
+        string serverIp;
+        string cookie = this->getCookieHeader(buffer);
+        // cout << "COOKIE IS =>>>>>> " << cookie << endl;
+        if (cookie.length())
+        {
+            int last = cookie.length() - 1;
+            this->host = getServerIP(string(1, cookie.at(last)));
+        }
+        else
+        {
+            int rndServer = rand() % 3;
+            this->host = this->serverids[rndServer]; // this->serverids[0];
+        }
+        // cout << "this.host ===== " << this->host << endl;
+
+        // this->host = "172.26.45.203";
         this->port = "8080";
-
-        string modifiedBuffer = this->modifyBuffer(buffer);
-
         int serverFd = this->createServerConnection();
         if (serverFd >= 0)
         {
-            this->writeToServerSocket(modifiedBuffer.c_str(), serverFd, buffer_len);
-            //  this->writeToServerSocket(buffer, serverFd, buffer_len);
-            this->writeToClient(clientfd, serverFd);
+            string serverId = this->getServerID(this->host);
+            // cout << "ServerId: " << serverId << endl;
+            // this->writeToServerSocket(modifiedBuffer.c_str(), serverFd, buffer_len);
+            this->writeToServerSocket(buffer, serverFd, buffer_len);
+            this->writeToClient(clientfd, serverFd, serverId);
             close(serverFd);
         }
     }
@@ -209,13 +208,50 @@ void RequestParser::writeToServerSocket(const char *buff_to_server, int sockfd, 
     }
 }
 
-void RequestParser::writeToClientSocket(const char *buff_to_server, int sockfd, int buff_length)
+string RequestParser::modifyResponse(const char *response)
+{
+    string strbuf = string(response);
+    if (strbuf.compare(0, 5, "HTTP/") != 0)
+        return "";
+    istringstream is = istringstream(strbuf);
+    int count = 0;
+    while (count <= 5)
+    {
+        string token;
+        is >> token;
+        if (token == "Content-Type:")
+        {
+            string type;
+            is >> type;
+            if (type.compare(0, 6, "image/") == 0)
+            {
+                return "";
+            }
+        }
+        count += 1;
+    }
+    ssize_t first_header = strbuf.find("\r\n");
+    string serverId = this->getServerID(this->host);
+    if (first_header != (ssize_t)string::npos)
+    {
+        string newheader = strbuf.substr(0, first_header + 2);
+        strbuf.erase(0, first_header + 2);
+        strbuf = newheader + "Set-Cookie: SERVERID=" + serverId + "\r\n" + strbuf;
+    }
+
+    return strbuf;
+}
+
+void RequestParser::writeToClientSocket(const char *buff_to_client, int sockfd, int buff_length, string serverId)
 {
     int totalsent = 0;
     int senteach;
+    string newbuf = this->modifyResponse(buff_to_client);
+    buff_to_client = newbuf.length() ? newbuf.c_str() : buff_to_client;
+    buff_length = newbuf.length() ? newbuf.length() : buff_length;
     while (totalsent < buff_length)
     {
-        if ((senteach = write(sockfd, (void *)(buff_to_server + totalsent), buff_length - totalsent)) < 0)
+        if ((senteach = send(sockfd, (buff_to_client + totalsent), buff_length - totalsent, 0)) < 0)
         {
             cout << "[E] Cannot send to server" << endl;
             return;
@@ -224,15 +260,14 @@ void RequestParser::writeToClientSocket(const char *buff_to_server, int sockfd, 
     }
 }
 
-void RequestParser::writeToClient(int clientFd, int serverFd)
+void RequestParser::writeToClient(int clientFd, int serverFd, string serverId)
 {
     int iRecv;
     char buf[MAX_BUFFER_SIZE];
     while ((iRecv = recv(serverFd, buf, MAX_BUFFER_SIZE, 0)) > 0)
     {
-        cout << "[I] Buffer from server: " << buf << endl;
-        this->writeToClientSocket(buf, clientFd, iRecv + 1); // writing to client
-        memset(buf, 0, iRecv + 1);
+        this->writeToClientSocket(buf, clientFd, iRecv, serverId); // writing to client
+        memset(buf, 0, iRecv);
     }
 }
 

@@ -18,6 +18,7 @@
 #include "request_parser.h"
 
 using namespace std;
+constexpr int max_events = 32;
 
 auto create_and_bind(string const &port)
 {
@@ -146,9 +147,8 @@ auto read_data(int fd)
 	if (pid < 0)
 	{
 		perror("[E] Fork failed");
-		return true;
+		return false;
 	}
-
 	if (pid == 0)
 	{
 		RequestParser *rp = new RequestParser();
@@ -156,9 +156,8 @@ auto read_data(int fd)
 		delete rp;
 		exit(0);
 	}
-
-	cout << "test" << endl;
-	return true;
+	close(fd);
+	return false;
 }
 
 int main()
