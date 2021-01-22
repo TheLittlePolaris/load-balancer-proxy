@@ -125,7 +125,7 @@ int RequestParser::createServerConnection()
 
     cout << this->host << endl;
 
-    if (getaddrinfo(this->host.c_str(), "8080", &ahints, &paRes) != 0)
+    if (getaddrinfo("192.168.102.150", "8080", &ahints, &paRes) != 0)
     {
         cout << "[E] getaddrinfo failed!" << endl;
         return -1;
