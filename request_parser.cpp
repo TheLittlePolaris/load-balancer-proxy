@@ -168,7 +168,6 @@ void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_
     {
         string serverIp;
         string cookie = this->getCookieHeader(buffer);
-        // cout << "COOKIE IS =>>>>>> " << cookie << endl;
         if (cookie.length())
         {
             int last = cookie.length() - 1;
@@ -177,11 +176,10 @@ void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_
         else
         {
             int rndServer = rand() % 3;
+            cout << "Rnd Server: " << rndServer << endl;
             this->host = this->serverids[rndServer]; // this->serverids[0];
         }
-        // cout << "this.host ===== " << this->host << endl;
-
-        // this->host = "172.26.45.203";
+        this->host = "172.31.141.212";
         this->port = "8080";
         int serverFd = this->createServerConnection();
         if (serverFd >= 0)
