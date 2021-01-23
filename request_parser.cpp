@@ -123,7 +123,7 @@ int RequestParser::createServerConnection()
     ahints.ai_socktype = SOCK_STREAM;
     ahints.ai_flags = AI_PASSIVE;
 
-    cout << this->host << endl;
+    cout << "Selected web server: " << this->host << endl;
 
     if (getaddrinfo(this->host.c_str(), "8080", &ahints, &paRes) != 0)
     {
@@ -175,12 +175,13 @@ void RequestParser::processRequest(const char *buffer, int clientfd, int buffer_
         }
         else
         {
+            unsigned seed = time(0);
+            srand(seed);
             int rndServer = rand() % 3;
-            cout << "Rnd Server: " << rndServer << endl;
             this->host = this->serverids[rndServer]; // this->serverids[0];
         }
-        this->host = "172.31.141.212";
-        this->port = "8080";
+        // this->host = "172.31.141.212";
+        // this->port = "8080";
         int serverFd = this->createServerConnection();
         if (serverFd >= 0)
         {
